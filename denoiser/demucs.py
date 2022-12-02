@@ -20,6 +20,7 @@ class BLSTM(nn.Module):
     def __init__(self, dim, layers=2, bi=True):
         super().__init__()
         klass = nn.LSTM
+        # klass = th.ao.nn.quantizable.modules.rnn.LSTM
         self.lstm = klass(bidirectional=bi, num_layers=layers, hidden_size=dim, input_size=dim)
         self.linear = None
         if bi:
@@ -88,6 +89,7 @@ class Demucs(nn.Module):
                  floor=1e-3,
                  sample_rate=16_000,
                  quantize_activations=False,
+                 quantize_lstm=False,
                  ):
 
         super().__init__()
@@ -106,14 +108,20 @@ class Demucs(nn.Module):
         self.normalize = normalize
         self.sample_rate = sample_rate
         self.quantize_activations = quantize_activations
+        self.quantize_lstm = quantize_lstm
 
         self.encoder = nn.ModuleList()
         self.decoder = nn.ModuleList()
         activation = nn.GLU(1) if glu else nn.ReLU()
         ch_scale = 2 if glu else 1
 
-        self.quant_stub = th.quantization.QuantStub()
-        self.dequant_stub = th.quantization.DeQuantStub()
+        if quantize_activations:
+            self.quant_stub = th.quantization.QuantStub()
+            self.dequant_stub = th.quantization.DeQuantStub()
+
+        if not quantize_lstm:
+            self.dequant_pre_lstm = th.quantization.DeQuantStub()
+            self.quant_post_lstm = th.quantization.QuantStub()
 
         for index in range(depth):
             encode = []
@@ -202,7 +210,13 @@ class Demucs(nn.Module):
         # lstm_init = None
         print('running updated version')
         # x, _ = self.lstm(x, lstm_init)
+        
+        if not self.quantize_lstm:
+            x = self.dequant_pre_lstm(x)
         x, _ = self.lstm(x)
+        if not self.quantize_lstm:
+            x = self.quant_post_lstm(x)
+
         x = x.permute(1, 2, 0)
         for decode in self.decoder:
             skip = skips.pop(-1)
