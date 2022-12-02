@@ -307,7 +307,7 @@ class DemucsStreamer:
         self.stride = demucs.total_stride * num_frames
         self.resample_in = th.zeros(demucs.chin, resample_buffer, device=device)
         self.resample_out = th.zeros(demucs.chin, resample_buffer, device=device)
-
+        
         self.frames = 0
         self.total_time = 0
         self.variance = 0
