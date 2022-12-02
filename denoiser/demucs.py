@@ -119,9 +119,9 @@ class Demucs(nn.Module):
             self.quant_stub = th.quantization.QuantStub()
             self.dequant_stub = th.quantization.DeQuantStub()
 
-        if not quantize_lstm:
-            self.dequant_pre_lstm = th.quantization.DeQuantStub()
-            self.quant_post_lstm = th.quantization.QuantStub()
+        # if not quantize_lstm:
+        #     self.dequant_pre_lstm = th.quantization.DeQuantStub()
+        #     self.quant_post_lstm = th.quantization.QuantStub()
 
         for index in range(depth):
             encode = []
@@ -210,12 +210,12 @@ class Demucs(nn.Module):
         # lstm_init = None
         print('running updated version')
         # x, _ = self.lstm(x, lstm_init)
-        
-        if not self.quantize_lstm:
-            x = self.dequant_pre_lstm(x)
+
+        # if not self.quantize_lstm:
+        #     x = self.dequant_pre_lstm(x)
         x, _ = self.lstm(x)
-        if not self.quantize_lstm:
-            x = self.quant_post_lstm(x)
+        # if not self.quantize_lstm:
+        #     x = self.quant_post_lstm(x)
 
         x = x.permute(1, 2, 0)
         for decode in self.decoder:
