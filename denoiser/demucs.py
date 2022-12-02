@@ -149,6 +149,12 @@ class Demucs(nn.Module):
         if rescale:
             rescale_module(self, reference=rescale)
 
+    def get_padding_lengths(self):
+        i = 1
+        st = self.valid_length(i)
+        ss = self.valid_length(st+1) - st
+        return st, ss
+
     def valid_length(self, length):
         """
         Return the nearest valid length to use with the model so that
