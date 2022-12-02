@@ -25,7 +25,7 @@ LINSPACE = th.tensor([-55.5000, -54.5000, -53.5000, -52.5000, -51.5000, -50.5000
          28.5000,  29.5000,  30.5000,  31.5000,  32.5000,  33.5000,  34.5000,
          35.5000,  36.5000,  37.5000,  38.5000,  39.5000,  40.5000,  41.5000,
          42.5000,  43.5000,  44.5000,  45.5000,  46.5000,  47.5000,  48.5000,
-         49.5000,  50.5000,  51.5000,  52.5000,  53.5000,  54.5000,  55.5000])
+         49.5000,  50.5000,  51.5000,  52.5000,  53.5000,  54.5000,  55.5000], requires_grad = False)
 
 def sinc(t):
     """sinc.
@@ -41,7 +41,7 @@ def kernel_upsample2(zeros=56):
     """
     win = th.hann_window(4 * zeros + 1, periodic=False)
     winodd = win[1::2]
-    t = LINSPACE
+    t = th.clone(LINSPACE)
     # t = th.linspace(-zeros + 0.5, zeros - 0.5, 2 * zeros)
     t *= math.pi
     kernel = (sinc(t) * winodd).view(1, 1, -1)
@@ -68,7 +68,7 @@ def kernel_downsample2(zeros=56):
     """
     win = th.hann_window(4 * zeros + 1, periodic=False)
     winodd = win[1::2]
-    t = LINSPACE
+    t = th.clone(LINSPACE)
     # t = th.linspace(-zeros + 0.5, zeros - 0.5, 2 * zeros)
     t.mul_(math.pi)
     kernel = (sinc(t) * winodd).view(1, 1, -1)
