@@ -51,6 +51,15 @@ def convert_audio_channels(wav, channels=2):
         raise ValueError('The audio file has less channels than requested but is not mono.')
     return wav
 
+def pad(x, st, ss):
+    length = x.shape[-1]
+    next_length = st + (length - st - 1) // ss * ss + ss
+    x = F.pad(x, (0, next_length - length))
+    return x, length
+
+def unpad(x, length):
+    return x[..., :length]
+
 
 def convert_audio(wav, from_samplerate, to_samplerate, channels):
     """Convert audio from a given samplerate to a target one and target number of channels."""

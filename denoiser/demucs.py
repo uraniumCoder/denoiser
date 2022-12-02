@@ -177,13 +177,13 @@ class Demucs(nn.Module):
     def total_stride(self):
         return self.stride ** self.depth // self.resample
 
-    def pad(self, x):
-        length = x.shape[-1]
-        x = F.pad(x, (0, self.valid_length(length) - length))
-        return x, length
+    # def pad(self, x):
+    #     length = x.shape[-1]
+    #     x = F.pad(x, (0, self.valid_length(length) - length))
+    #     return x, length
 
-    def unpad(self, x, length):
-        return x[..., :length]
+    # def unpad(self, x, length):
+    #     return x[..., :length]
 
     def step_1(self, mix):
         """
