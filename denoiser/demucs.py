@@ -234,7 +234,7 @@ class Demucs(nn.Module):
 
         return x
 
-    def step_3(self, x, length, std):
+    def step_3(self, x, std):
         """
         postprocessing step of the forward function
         """
