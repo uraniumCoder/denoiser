@@ -242,8 +242,9 @@ class Demucs(nn.Module):
         return std * x
 
     def forward(self, x):
-        """This only NN, use full_forward for an actually usable function"""
-        return self.step_2(x)
+        # """This only NN, use full_forward for an actually usable function"""
+        # return self.step_2(x)
+        return self.full_forward(x)
 
     def full_forward(self, mix):
         x, length, std = self.step_1(mix)
