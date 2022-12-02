@@ -86,7 +86,9 @@ class Demucs(nn.Module):
                  glu=True,
                  rescale=0.1,
                  floor=1e-3,
-                 sample_rate=16_000):
+                 sample_rate=16_000,
+                 quantize_activations=False,
+                 ):
 
         super().__init__()
         if resample not in [1, 2, 4]:
@@ -103,11 +105,15 @@ class Demucs(nn.Module):
         self.resample = resample
         self.normalize = normalize
         self.sample_rate = sample_rate
+        self.quantize_activations = quantize_activations
 
         self.encoder = nn.ModuleList()
         self.decoder = nn.ModuleList()
         activation = nn.GLU(1) if glu else nn.ReLU()
         ch_scale = 2 if glu else 1
+
+        self.quant_stub = th.quantization.QuantStub()
+        self.dequant_stub = th.quantization.DeQuantStub()
 
         for index in range(depth):
             encode = []
@@ -185,6 +191,8 @@ class Demucs(nn.Module):
         """
         model step of the forward function
         """
+        if self.quantize_activations:
+            x = self.quant_stub(x)
         skips = []
         for encode in self.encoder:
             x = encode(x)
@@ -200,6 +208,9 @@ class Demucs(nn.Module):
             skip = skips.pop(-1)
             x = x + skip[..., :x.shape[-1]]
             x = decode(x)
+
+        if self.quantize_activations:
+            x = self.dequant_stub(x)
 
         return x
 
