@@ -171,6 +171,14 @@ class Demucs(nn.Module):
     def total_stride(self):
         return self.stride ** self.depth // self.resample
 
+    def pad(self, x):
+        length = x.shape[-1]
+        x = F.pad(x, (0, self.valid_length(length) - length))
+        return x, length
+
+    def unpad(self, x, length):
+        return x[..., :length]
+
     def step_1(self, mix):
         """
         preprocessing step of the forward function
@@ -184,16 +192,14 @@ class Demucs(nn.Module):
             mix = mix / (self.floor + std)
         else:
             std = 1
-        length = mix.shape[-1]
         x = mix
-        x = F.pad(x, (0, self.valid_length(length) - length))
         if self.resample == 2:
             x = upsample2(x)
         elif self.resample == 4:
             x = upsample2(x)
             x = upsample2(x)
 
-        return x, length, std
+        return x, std
 
     def step_2(self, x):
         """
@@ -238,18 +244,20 @@ class Demucs(nn.Module):
             x = downsample2(x)
             x = downsample2(x)
 
-        x = x[..., :length]
         return std * x
 
     def forward(self, x):
+        """
+        Make sure to run pad before and then unpad after the forward pass.
+        """
         # """This only NN, use full_forward for an actually usable function"""
         # return self.step_2(x)
         return self.full_forward(x)
 
     def full_forward(self, mix):
-        x, length, std = self.step_1(mix)
+        x, std = self.step_1(mix)
         x = self.step_2(x)
-        return self.step_3(x, length, std)
+        return self.step_3(x, std)
 
 def fast_conv(conv, x):
     """
@@ -307,7 +315,7 @@ class DemucsStreamer:
         self.stride = demucs.total_stride * num_frames
         self.resample_in = th.zeros(demucs.chin, resample_buffer, device=device)
         self.resample_out = th.zeros(demucs.chin, resample_buffer, device=device)
-        
+
         self.frames = 0
         self.total_time = 0
         self.variance = 0
