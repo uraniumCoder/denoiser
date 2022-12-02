@@ -156,7 +156,10 @@ class Demucs(nn.Module):
     def total_stride(self):
         return self.stride ** self.depth // self.resample
 
-    def forward(self, mix):
+    def step_1(self, mix):
+        """
+        preprocessing step of the forward function
+        """
         if mix.dim() == 2:
             mix = mix.unsqueeze(1)
 
@@ -174,6 +177,13 @@ class Demucs(nn.Module):
         elif self.resample == 4:
             x = upsample2(x)
             x = upsample2(x)
+
+        return x, length, std
+
+    def step_2(self, x):
+        """
+        model step of the forward function
+        """
         skips = []
         for encode in self.encoder:
             x = encode(x)
@@ -185,6 +195,13 @@ class Demucs(nn.Module):
             skip = skips.pop(-1)
             x = x + skip[..., :x.shape[-1]]
             x = decode(x)
+
+        return x
+
+    def step_3(self, x, length, std):
+        """
+        postprocessing step of the forward function
+        """
         if self.resample == 2:
             x = downsample2(x)
         elif self.resample == 4:
@@ -194,6 +211,11 @@ class Demucs(nn.Module):
         x = x[..., :length]
         return std * x
 
+    def forward(self, mix):
+
+        x, length, std = self.step_1(mix)
+        x = self.step_2(x)
+        return self.step_3(x, length, std)
 
 def fast_conv(conv, x):
     """
