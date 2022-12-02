@@ -131,6 +131,7 @@ class Demucs(nn.Module):
             hidden = min(int(growth * hidden), max_hidden)
 
         self.lstm = BLSTM(chin, bi=not causal)
+        self.lstm_init = (th.zeros(2 if causal else 4, 1, chin), th.zeros(2 if causal else 4, 1, chin))
         if rescale:
             rescale_module(self, reference=rescale)
 
@@ -189,7 +190,7 @@ class Demucs(nn.Module):
             x = encode(x)
             skips.append(x)
         x = x.permute(2, 0, 1)
-        x, _ = self.lstm(x)
+        x, _ = self.lstm(x, self.lstm_init)
         x = x.permute(1, 2, 0)
         for decode in self.decoder:
             skip = skips.pop(-1)
