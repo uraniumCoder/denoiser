@@ -82,12 +82,13 @@ def downsample2(x, zeros=56):
     ICASSP'84. IEEE International Conference on Acoustics, Speech, and Signal Processing.
     Vol. 9. IEEE, 1984.
     """
-    if x.shape[-1] % 2 != 0:
-        x = F.pad(x, (0, 1))
+    # if x.shape[-1] % 2 != 0:
+        # x = F.pad(x, (0, 1))
+    assert x.shape[-1] % 2 == 0
     xeven = x[..., ::2]
     xodd = x[..., 1::2]
     *other, time = xodd.shape
     kernel = kernel_downsample2(zeros).to(x)
     out = xeven + F.conv1d(xodd.view(-1, 1, time), kernel, padding=zeros)[..., :-1].view(
         *other, time)
-    return out.view(*other, -1).mul(0.5)
+    return out.view(*other, time).mul(0.5)
