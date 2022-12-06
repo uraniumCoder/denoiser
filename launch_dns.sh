@@ -9,7 +9,7 @@
 python train.py \
   dset=dns \
   demucs.causal=1 \
-  demucs.hidden=64 \
+  demucs.hidden=48 \
   demucs.resample=4 \
   batch_size=128 \
   revecho=1 \
