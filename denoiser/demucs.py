@@ -14,6 +14,7 @@ from torch.nn import functional as F
 
 from .resample import downsample2, upsample2
 from .utils import capture_init
+from .dsp import pad, unpad
 
 
 class BLSTM(nn.Module):
@@ -220,7 +221,7 @@ class Demucs(nn.Module):
         x = x.permute(2, 0, 1)
         # lstm_init = (th.zeros(2, 1, self.lstm_dim), th.zeros(2, 1, self.lstm_dim))
         # lstm_init = None
-        print('running updated version')
+        # print('running updated version')
         # x, _ = self.lstm(x, lstm_init)
 
         # if not self.quantize_lstm:
@@ -258,12 +259,16 @@ class Demucs(nn.Module):
         """
         # """This only NN, use full_forward for an actually usable function"""
         # return self.step_2(x)
-        return self.full_forward(x)
-
-    def full_forward(self, mix):
-        x, std = self.step_1(mix)
+        x, std = self.step_1(x)
         x = self.step_2(x)
         return self.step_3(x, std)
+
+    def full_forward(self, mix):
+        x, length = pad(mix, *self.get_padding_lengths())
+        x = self.forward(x)
+        x = unpad(x, length)
+        return x
+
 
 def fast_conv(conv, x):
     """

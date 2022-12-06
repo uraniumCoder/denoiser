@@ -20,6 +20,8 @@ from .enhance import add_flags, get_estimate
 from . import distrib, pretrained
 from .utils import bold, LogProgress
 
+torch.multiprocessing.set_sharing_strategy('file_system')
+
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(
@@ -32,13 +34,14 @@ parser.add_argument('--no_pesq', action="store_false", dest="pesq", default=True
                     help="Don't compute PESQ.")
 parser.add_argument('-v', '--verbose', action='store_const', const=logging.DEBUG,
                     default=logging.INFO, help="More loggging")
+parser.add_argument('--convert', action='store_true', help='Convert to 16kHz before evaluation')
 
 
 def evaluate(args, model=None, data_loader=None):
     total_pesq = 0
     total_stoi = 0
     total_cnt = 0
-    updates = 5
+    updates = 100
 
     # Load model
     if not model:
@@ -48,7 +51,7 @@ def evaluate(args, model=None, data_loader=None):
     # Load data
     if data_loader is None:
         dataset = NoisyCleanSet(args.data_dir,
-                                matching=args.matching, sample_rate=model.sample_rate)
+                                matching=args.matching, sample_rate=model.sample_rate, convert=args.convert)
         data_loader = distrib.loader(dataset, batch_size=1, num_workers=2)
     pendings = []
     with ProcessPoolExecutor(args.num_workers) as pool:
@@ -59,9 +62,11 @@ def evaluate(args, model=None, data_loader=None):
                 noisy, clean = [x.to(args.device) for x in data]
                 # If device is CPU, we do parallel evaluation in each CPU worker.
                 if args.device == 'cpu':
+                    # print('cpu')
                     pendings.append(
                         pool.submit(_estimate_and_run_metrics, clean, model, noisy, args))
                 else:
+                    # print('cuda')
                     estimate = get_estimate(model, noisy, args)
                     estimate = estimate.cpu()
                     clean = clean.cpu()

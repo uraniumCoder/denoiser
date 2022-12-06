@@ -18,6 +18,7 @@ import torchaudio
 from .audio import Audioset, find_audio_files
 from . import distrib, pretrained
 from .demucs import DemucsStreamer
+from .dsp import pad, unpad
 
 from .utils import LogProgress
 
@@ -64,7 +65,7 @@ def get_estimate(model, noisy, args):
                 streamer.flush()], dim=1)[None]
     else:
         with torch.no_grad():
-            estimate = model(noisy)
+            estimate = model.full_forward(noisy)
             estimate = (1 - args.dry) * estimate + args.dry * noisy
     return estimate
 
