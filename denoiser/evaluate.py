@@ -93,10 +93,12 @@ def evaluate(args, model=None, data_loader=None):
     metrics = [total_pesq, total_stoi]
     pesq, stoi = distrib.average([m/total_cnt for m in metrics], total_cnt)
     logger.info(bold(f'Test set performance:PESQ={pesq}, STOI={stoi}.'))
+    return pesq, stoi
+
+def get_size(args):
     nparams = _count_parameters(model)
     model_size = get_model_size(model, int(args.bit_width))
-    return pesq, stoi, nparams, model_size
-
+    return nparams, model_size
 
 def _estimate_and_run_metrics(clean, model, noisy, args):
     estimate = get_estimate(model, noisy, args)
@@ -172,7 +174,8 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(stream=sys.stderr, level=args.verbose)
     logger.debug(args)
-    pesq, stoi, nparams, model_size = evaluate(args)
+    pesq, stoi = evaluate(args)
+    nparams, model_size = get_size(args)
     json.dump({'pesq': pesq, 'stoi': stoi, 'nparams': nparams, 'model size': model_size}, sys.stdout)
     sys.stdout.write('\n')
 

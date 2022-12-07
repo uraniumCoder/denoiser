@@ -9,3 +9,4 @@ dset:
   noisy_dir:
   matching: sort       # how to match noisy and clean files. For Valentini, use sort, for DNS, use dns.
 eval_every: 2
+epochs: 10

@@ -5,4 +5,5 @@ dset:
   noisy_json:
   noisy_dir:
   matching: sort
-eval_every: 4
+eval_every: 5
+epochs: 30

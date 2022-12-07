@@ -6,3 +6,4 @@ dset:
   noisy_dir:
   matching: sort
 pesq: 1
+convert: true
