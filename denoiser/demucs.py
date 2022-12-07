@@ -90,7 +90,7 @@ class Demucs(nn.Module):
                  sample_rate=16_000,
                  quantize_activations=False,
                  quantize_lstm=False,
-                 prune_ratio=None,
+                 prune_ratio=1,
                  ):
 
         super().__init__()
