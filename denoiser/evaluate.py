@@ -44,6 +44,7 @@ parser.add_argument('--no_pesq', action="store_false", dest="pesq", default=True
 parser.add_argument('-v', '--verbose', action='store_const', const=logging.DEBUG,
                     default=logging.INFO, help="More loggging")
 parser.add_argument('--convert', action='store_true', help='Convert to 16kHz before evaluation')
+parser.add_argument('--bit-width', help='quantize, 8, 4, 2')
 
 
 def evaluate(args, model=None, data_loader=None):
