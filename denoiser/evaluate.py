@@ -20,13 +20,22 @@ from .enhance import add_flags, get_estimate
 from . import distrib, pretrained
 from .utils import bold, LogProgress
 
+from prettytable import PrettyTable
+
+
+Byte = 8
+KiB = 1024 * Byte
+MiB = 1024 * KiB
+GiB = 1024 * MiB
+
+
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(
-        'denoiser.evaluate',
-        description='Speech enhancement using Demucs - Evaluate model performance')
+    'denoiser.evaluate',
+    description='Speech enhancement using Demucs - Evaluate model performance')
 add_flags(parser)
 parser.add_argument('--data_dir', help='directory including noisy.json and clean.json files')
 parser.add_argument('--matching', default="sort", help='set this to dns for the dns dataset.')
@@ -82,6 +91,8 @@ def evaluate(args, model=None, data_loader=None):
     metrics = [total_pesq, total_stoi]
     pesq, stoi = distrib.average([m/total_cnt for m in metrics], total_cnt)
     logger.info(bold(f'Test set performance:PESQ={pesq}, STOI={stoi}.'))
+    _count_parameters(model)
+    get_model_size(model)
     return pesq, stoi
 
 
@@ -99,6 +110,32 @@ def _run_metrics(clean, estimate, args, sr):
         pesq_i = 0
     stoi_i = get_stoi(clean, estimate, sr=sr)
     return pesq_i, stoi_i
+
+
+def _count_parameters(model):
+    table = PrettyTable(["Modules", "Parameters"])
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        params = parameter.numel()
+        table.add_row([name, params])
+        total_params += params
+    logger.info(table)
+    logger.info(f"Total Trainable Params: {total_params}")
+    return total_params
+
+
+def get_model_size(model, data_width=32):
+    """
+    calculate the model size in bits
+    :param data_width: #bits per element
+    """
+    num_elements = 0
+    for param in model.parameters():
+        num_elements += param.numel()
+    logger.info(f"Total size in MiB: {num_elements * data_width/MiB:.2f} MiB")
+    return num_elements * data_width
 
 
 def get_pesq(ref_sig, out_sig, sr):
