@@ -65,7 +65,7 @@ def get_estimate(model, noisy, args):
                 streamer.flush()], dim=1)[None]
     else:
         with torch.no_grad():
-            estimate = model.full_forward(noisy)
+            estimate = model(noisy)
             estimate = (1 - args.dry) * estimate + args.dry * noisy
     return estimate
 

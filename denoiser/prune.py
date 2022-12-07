@@ -1,4 +1,18 @@
 import copy
+import torch
+import argparse
+
+from .pretrained import get_model, add_model_flags
+from .utils import serialize_model
+
+parser = argparse.ArgumentParser(
+    'denoiser.prune',
+    description='Prune model'
+)
+add_model_flags(parser)
+parser.add_argument('--uniform', action='store_true', help='uniform pruning')
+parser.add_argument('--p', type=float, required=True, help='pruning factor')
+parser.add_argument('--output', type=str, required=True, help='output path')
 
 def get_nchannels(model):
     """
@@ -104,3 +118,29 @@ def prune(model, tgt_nchannels):
             next_conv.in_channels = tgt        
 
     print("Pruning complete.")
+
+def main(model=None):
+    args = parser.parse_args()
+
+    # Load model
+    if not model:
+        model = get_model(args).cpu()
+    model.eval()
+
+    # Uniform pruning
+    if args.uniform:
+        cur_nchannels = get_nchannels(model)
+        tgt_nchannels = scale_down(cur_nchannels, args.p)
+        prune(model, tgt_nchannels)
+    model._init_args_kwargs[1]['prune_ratio'] = tgt_nchannels
+
+    # Save model
+    torch.save(serialize_model(model), args.output)
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+

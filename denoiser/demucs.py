@@ -16,7 +16,6 @@ from .resample import downsample2, upsample2
 from .utils import capture_init
 from .dsp import pad, unpad
 
-
 class BLSTM(nn.Module):
     def __init__(self, dim, layers=2, bi=True):
         super().__init__()
@@ -91,6 +90,7 @@ class Demucs(nn.Module):
                  sample_rate=16_000,
                  quantize_activations=False,
                  quantize_lstm=False,
+                 prune_ratio=None,
                  ):
 
         super().__init__()
@@ -152,6 +152,12 @@ class Demucs(nn.Module):
         self.lstm_dim = int(chin)
         if rescale:
             rescale_module(self, reference=rescale)
+
+        # prune model so we can load pruned models
+        if prune_ratio is not None:
+            print('loading pruned_model')
+            from .prune import prune
+            prune(self, prune_ratio)
 
     def get_padding_lengths(self):
         i = 1
@@ -268,7 +274,7 @@ class Demucs(nn.Module):
         x, length = pad(mix, *self.get_padding_lengths())
         x, std = self.step_1(x)
         x = self.step_2(x)
-        return self.step_3(x, std)
+        x = self.step_3(x, std)
         x = unpad(x, length)
         return x
 
