@@ -23,12 +23,16 @@ parser.add_argument('--uniform', action='store_true', help='uniform pruning')
 parser.add_argument('--p', type=float, help='pruning factor')
 parser.add_argument('--output', type=str, help='output path')
 
+# manual select pruning ratios
+parser.add_argument('--target', type=str, help='json object of target number of channels')
+
 # sensitivity scan
 parser.add_argument('--sensitivity', action='store_true', help='sensitivity scan')
 parser.add_argument('--scan_skips', action='store_true', help='scan the skip connections')
 parser.add_argument('--scan_encoder', action='store_true', help='scan the encoder inner layers')
 parser.add_argument('--scan_decoder', action='store_true', help='scan the decoder inner layers')
 
+# plot sensitivity scan results
 parser.add_argument('--plot_sensitivity', action='store_true', help='plot the sensitivity scan results')
 parser.add_argument('--sensitivity_path', type=str, help='path to the sensitivity scan results')
 
@@ -73,14 +77,14 @@ def importance_selection(prev_convs, next_convs, n_channel, args):
             layer_importance = torch.sqrt((weight**2).sum(dim=(0,2)))
         elif isinstance(conv, torch.nn.ConvTranspose1d):
             layer_importance = torch.sqrt((weight**2).sum(dim=(1,2)))
-        if not args.normalize_importance:
+        if args is None or not args.normalize_importance:
             importance += layer_importance
         else:
             importance += layer_importance / torch.sqrt((layer_importance**2).sum())
     keep_channels = torch.argsort(importance, descending=True)[:n_channel].detach()
     return keep_channels
 
-def prune(model, tgt_nchannels, args):
+def prune(model, tgt_nchannels, args=None):
     """
     Prune the model using importance scores. (L2 on input channels)
     Currently doesn't support pruning the LSTM layer.
@@ -204,6 +208,12 @@ def main(model=None):
         model._init_args_kwargs[1]['prune_ratio'] = tgt_nchannels
         # Save model
         torch.save(serialize_model(model), args.output)
+
+    if args.target:
+        tgt_nchannels = json.loads(args.target)
+        prune(model, tgt_nchannels, args)
+        model._init_args_kwargs[1]['prune_ratio'] = tgt_nchannels
+        torch.save(serialize_model(model), args.output)        
     
     # Sensitivity scan
     if args.sensitivity:

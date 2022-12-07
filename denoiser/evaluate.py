@@ -95,7 +95,12 @@ def evaluate(args, model=None, data_loader=None):
     logger.info(bold(f'Test set performance:PESQ={pesq}, STOI={stoi}.'))
     return pesq, stoi
 
-def get_size(args):
+def get_size(args, model=None):
+    # Load model
+    if not model:
+        model = pretrained.get_model(args).to(args.device)
+    model.eval()
+
     nparams = _count_parameters(model)
     model_size = get_model_size(model, int(args.bit_width))
     return nparams, model_size
