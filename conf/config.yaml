@@ -1,5 +1,5 @@
 defaults:
-  - dset: debug
+  - dset: dns
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
 
@@ -9,6 +9,8 @@ segment: 4
 stride: 1    # in seconds, how much to stride between training examples
 pad: true   # if training sample is too short, pad it
 convert: false
+finetune: false
+model_path: None
 
 # Dataset Augmentation
 remix: false   # remix noise and clean
@@ -77,6 +79,7 @@ demucs:
   resample: 4
   growth: 2
   rescale: 0.1
+  prune_ratio: 1
 
 # Experiment launching, distributed
 ddp: false

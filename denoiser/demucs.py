@@ -154,9 +154,12 @@ class Demucs(nn.Module):
             rescale_module(self, reference=rescale)
 
         # prune model so we can load pruned models
-        if prune_ratio is not None:
+        if prune_ratio != 1:
             # print('loading pruned_model')
             from .prune import prune
+            if isinstance(prune_ratio, int) or isinstance(prune_ratio, float):
+                from .prune import get_nchannels, scale_down
+                prune_ratio = scale_down(get_nchannels(self), prune_ratio)
             prune(self, prune_ratio)
 
     def get_padding_lengths(self):

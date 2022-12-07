@@ -1,9 +1,14 @@
 dset:
   train: egs/dns
-  valid: egs/dns
-  test: egs/dns
+  valid: 
+  test: egs/valentini
   noisy_json:
   noisy_dir:
   matching: sort
-eval_every: 5
-epochs: 30
+eval_every: 1
+epochs: 1
+stride: 2
+batch_size: 60 # we need smaller batch size since the inputs are 10s long
+lr: 3e-4
+convert: true
+num_prints: 10

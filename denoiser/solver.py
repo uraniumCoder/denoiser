@@ -119,6 +119,11 @@ class Solver(object):
             logger.info("Fine tuning from pre-trained model %s", continue_pretrained)
             model = getattr(pretrained, self.args.continue_pretrained)()
             self.model.load_state_dict(model.state_dict())
+        if self.args.finetune:
+            logger.info("Fine tuning")
+            model = pretrained.get_model(self.args)
+            self.model.load_state_dict(model.state_dict())
+
 
     def train(self):
         if self.args.save_again:
