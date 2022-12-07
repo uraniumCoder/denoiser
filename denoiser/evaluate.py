@@ -44,7 +44,7 @@ parser.add_argument('--no_pesq', action="store_false", dest="pesq", default=True
 parser.add_argument('-v', '--verbose', action='store_const', const=logging.DEBUG,
                     default=logging.INFO, help="More loggging")
 parser.add_argument('--convert', action='store_true', help='Convert to 16kHz before evaluation')
-parser.add_argument('--bit-width', help='quantize, 8, 4, 2')
+parser.add_argument('--bit_width', default="32", help='quantize, 8, 4, 2')
 
 
 def evaluate(args, model=None, data_loader=None):
@@ -93,7 +93,7 @@ def evaluate(args, model=None, data_loader=None):
     pesq, stoi = distrib.average([m/total_cnt for m in metrics], total_cnt)
     logger.info(bold(f'Test set performance:PESQ={pesq}, STOI={stoi}.'))
     _count_parameters(model)
-    get_model_size(model)
+    get_model_size(model, int(args.bit_width))
     return pesq, stoi
 
 
