@@ -117,7 +117,7 @@ def prune(model, tgt_nchannels):
             next_conv.weight.set_(next_conv.weight.detach()[keep_channels])
             next_conv.in_channels = tgt        
 
-    print("Pruning complete.")
+    # print("Pruning complete.")
 
 def main(model=None):
     args = parser.parse_args()

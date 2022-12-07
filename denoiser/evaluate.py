@@ -35,13 +35,13 @@ parser.add_argument('--no_pesq', action="store_false", dest="pesq", default=True
 parser.add_argument('-v', '--verbose', action='store_const', const=logging.DEBUG,
                     default=logging.INFO, help="More loggging")
 parser.add_argument('--convert', action='store_true', help='Convert to 16kHz before evaluation')
-
+parser.add_argument('--updates', type=int, default=100, help='Number of times to log progress')
 
 def evaluate(args, model=None, data_loader=None):
     total_pesq = 0
     total_stoi = 0
     total_cnt = 0
-    updates = 100
+    updates = args.updates
 
     # Load model
     if not model:
@@ -56,7 +56,7 @@ def evaluate(args, model=None, data_loader=None):
     pendings = []
     with ProcessPoolExecutor(args.num_workers) as pool:
         with torch.no_grad():
-            iterator = LogProgress(logger, data_loader, name="Eval estimates")
+            iterator = LogProgress(logger, data_loader, updates=updates, name="Eval estimates")
             for i, data in enumerate(iterator):
                 # Get batch data
                 noisy, clean = [x.to(args.device) for x in data]
@@ -74,7 +74,7 @@ def evaluate(args, model=None, data_loader=None):
                         pool.submit(_run_metrics, clean, estimate, args, model.sample_rate))
                 total_cnt += clean.shape[0]
 
-        for pending in LogProgress(logger, pendings, updates, name="Eval metrics"):
+        for pending in LogProgress(logger, pendings, updates=updates, name="Eval metrics"):
             pesq_i, stoi_i = pending.result()
             total_pesq += pesq_i
             total_stoi += stoi_i

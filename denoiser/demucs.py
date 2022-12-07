@@ -155,7 +155,7 @@ class Demucs(nn.Module):
 
         # prune model so we can load pruned models
         if prune_ratio is not None:
-            print('loading pruned_model')
+            # print('loading pruned_model')
             from .prune import prune
             prune(self, prune_ratio)
 
