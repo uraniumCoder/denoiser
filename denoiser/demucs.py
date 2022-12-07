@@ -115,6 +115,7 @@ class Demucs(nn.Module):
         self.decoder = nn.ModuleList()
         activation = nn.GLU(1) if glu else nn.ReLU()
         ch_scale = 2 if glu else 1
+        self.ch_scale = ch_scale
 
         if quantize_activations:
             self.quant_stub = th.quantization.QuantStub()
@@ -129,13 +130,15 @@ class Demucs(nn.Module):
             encode += [
                 nn.Conv1d(chin, hidden, kernel_size, stride),
                 nn.ReLU(),
-                nn.Conv1d(hidden, hidden * ch_scale, 1), activation,
+                nn.Conv1d(hidden, hidden * ch_scale, 1), 
+                activation,
             ]
             self.encoder.append(nn.Sequential(*encode))
 
             decode = []
             decode += [
-                nn.Conv1d(hidden, ch_scale * hidden, 1), activation,
+                nn.Conv1d(hidden, ch_scale * hidden, 1), 
+                activation,
                 nn.ConvTranspose1d(hidden, chout, kernel_size, stride),
             ]
             if index > 0:
