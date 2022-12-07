@@ -24,13 +24,14 @@ logger = logging.getLogger(__name__)
 
 
 class Solver(object):
-    def __init__(self, data, model, optimizer, args):
+    def __init__(self, data, model, optimizer, args, callbacks=[]):
         self.tr_loader = data['tr_loader']
         self.cv_loader = data['cv_loader']
         self.tt_loader = data['tt_loader']
         self.model = model
         self.dmodel = distrib.wrap(model)
         self.optimizer = optimizer
+        self.callbacks = callbacks
 
         # data augment
         augments = []
@@ -233,6 +234,8 @@ class Solver(object):
                     self.optimizer.zero_grad()
                     loss.backward()
                     self.optimizer.step()
+                    for callback in self.callbacks:
+                        callback()
 
             total_loss += loss.item()
             logprog.update(loss=format(total_loss / (i + 1), ".5f"))

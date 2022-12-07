@@ -63,6 +63,10 @@ stft_mag_factor: .5
 epochs: 500
 batch_size: 64
 
+#kmeans quantize
+kmeans_finetune: True
+bitwidth: 4
+
 # Models
 model: demucs # either demucs or dwave
 demucs:
@@ -79,7 +83,8 @@ demucs:
   resample: 4
   growth: 2
   rescale: 0.1
-  prune_ratio: {"encoder": [[1, 38], [48, 96], [96, 172], [153, 384], [230, 460]],"decoder": [230, 384, 192, 96, 28],"lstm": [768, 768]}
+  prune_ratio: 1
+
 
 # Experiment launching, distributed
 ddp: false

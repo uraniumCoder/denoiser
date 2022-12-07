@@ -12,6 +12,9 @@ import os
 import hydra
 
 from denoiser.executor import start_ddp_workers
+import kmeans_quantize
+
+from denoiser.utils import serialize_model
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +78,16 @@ def run(args):
         logger.fatal('Invalid optimizer %s', args.optim)
         os._exit(1)
 
-    # Construct Solver
-    solver = Solver(data, model, optimizer, args)
-    solver.train()
+    if args.kmeans_finetune:
+        quantizer = kmeans_quantize.KMeansQuantizer(model, args.bitwidth)
+        quantizer.apply(model, False)
+        solver = Solver(data, model, optimizer, args, callbacks = [lambda: quantizer.apply(model, True)])
+        solver.train()
+        torch.save(serialize_model(model), "final.py")
+    else:
+        # Construct Solver
+        solver = Solver(data, model, optimizer, args)
+        solver.train()
 
 
 def _main(args):
