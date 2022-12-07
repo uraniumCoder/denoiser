@@ -262,13 +262,13 @@ class Demucs(nn.Module):
         """
         # """This only NN, use full_forward for an actually usable function"""
         # return self.step_2(x)
-        x, std = self.step_1(x)
-        x = self.step_2(x)
-        return self.step_3(x, std)
+        return self.full_forward(x)
 
     def full_forward(self, mix):
         x, length = pad(mix, *self.get_padding_lengths())
-        x = self.forward(x)
+        x, std = self.step_1(x)
+        x = self.step_2(x)
+        return self.step_3(x, std)
         x = unpad(x, length)
         return x
 

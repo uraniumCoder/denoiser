@@ -10,7 +10,7 @@ import argparse
 from tqdm import tqdm
 
 from denoiser.evaluate import get_pesq, get_stoi
-from denoiser.dsp import pad, unpad
+# from denoiser.dsp import pad, unpad
 from denoiser.data import NoisyCleanSet
 
 PAD_MIN, PAD_STRIDE = 597, 256
@@ -55,7 +55,7 @@ def predict(interpreter, noisy):
     """
     Noisy: B x T
     """
-    noisy, length = pad(noisy, PAD_MIN, PAD_STRIDE)
+    # noisy, length = pad(noisy, PAD_MIN, PAD_STRIDE)
 
     # Get input and output tensors.
     input_details = interpreter.get_input_details()
@@ -71,7 +71,8 @@ def predict(interpreter, noisy):
     # The function `get_tensor()` returns a copy of the tensor data.
     # Use `tensor()` in order to get a pointer to the tensor.
     output_data = interpreter.get_tensor(output_details[0]['index'])
-    return unpad(output_data, length)
+    return output_data
+    # return unpad(output_data, length)
 
 def main(args):
     interpreter = get_interpreter(args)

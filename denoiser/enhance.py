@@ -18,7 +18,7 @@ import torchaudio
 from .audio import Audioset, find_audio_files
 from . import distrib, pretrained
 from .demucs import DemucsStreamer
-from .dsp import pad, unpad
+# from .dsp import pad, unpad
 
 from .utils import LogProgress
 
