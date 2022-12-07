@@ -2,6 +2,7 @@
 *.pyc
 egs/
 dataset/
+results/
 .nfs*
 outputs/
 enhanced/
