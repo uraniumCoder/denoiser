@@ -1,18 +1,36 @@
 import copy
 import torch
 import argparse
+import json
+import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from .pretrained import get_model, add_model_flags
 from .utils import serialize_model
+from .evaluate import evaluate
+from .evaluate import parser as eval_parser
 
 parser = argparse.ArgumentParser(
     'denoiser.prune',
     description='Prune model'
 )
 add_model_flags(parser)
+
+parser.add_argument('--normalize_importance', action='store_true', help='normalize importance scores before summing')
+
+# uniform pruning
 parser.add_argument('--uniform', action='store_true', help='uniform pruning')
-parser.add_argument('--p', type=float, required=True, help='pruning factor')
-parser.add_argument('--output', type=str, required=True, help='output path')
+parser.add_argument('--p', type=float, help='pruning factor')
+parser.add_argument('--output', type=str, help='output path')
+
+# sensitivity scan
+parser.add_argument('--sensitivity', action='store_true', help='sensitivity scan')
+parser.add_argument('--scan_skips', action='store_true', help='scan the skip connections')
+parser.add_argument('--scan_encoder', action='store_true', help='scan the encoder inner layers')
+parser.add_argument('--scan_decoder', action='store_true', help='scan the decoder inner layers')
+
+parser.add_argument('--plot_sensitivity', action='store_true', help='plot the sensitivity scan results')
+parser.add_argument('--sensitivity_path', type=str, help='path to the sensitivity scan results')
 
 def get_nchannels(model):
     """
@@ -44,7 +62,7 @@ def scale_down(n_channels, p):
     
     return tgt_nchannels
 
-def importance_selection(prev_convs, next_convs, n_channel):
+def importance_selection(prev_convs, next_convs, n_channel, args):
     """
     Select the channels to keep based on importance scores.
     """
@@ -52,13 +70,17 @@ def importance_selection(prev_convs, next_convs, n_channel):
     for conv in next_convs:
         weight = conv.weight.detach()
         if isinstance(conv, torch.nn.Conv1d):
-            importance += (weight**2).sum(dim=(0,2))
+            layer_importance = torch.sqrt((weight**2).sum(dim=(0,2)))
         elif isinstance(conv, torch.nn.ConvTranspose1d):
-            importance += (weight**2).sum(dim=(1,2))
+            layer_importance = torch.sqrt((weight**2).sum(dim=(1,2)))
+        if not args.normalize_importance:
+            importance += layer_importance
+        else:
+            importance += layer_importance / torch.sqrt((layer_importance**2).sum())
     keep_channels = torch.argsort(importance, descending=True)[:n_channel].detach()
     return keep_channels
 
-def prune(model, tgt_nchannels):
+def prune(model, tgt_nchannels, args):
     """
     Prune the model using importance scores. (L2 on input channels)
     Currently doesn't support pruning the LSTM layer.
@@ -73,7 +95,7 @@ def prune(model, tgt_nchannels):
 
                 next_convs = model.encoder[i][0], model.decoder[-i][0]
                 prev_convs = model.encoder[i-1][2], model.decoder[-i-1][2]
-                keep_channels = importance_selection(prev_convs, next_convs, tgt)
+                keep_channels = importance_selection(prev_convs, next_convs, tgt, args)
 
                 # last conv in encoder is glu layer, so we need to keep the channels in pairs
                 duplicated_channels = torch.cat([keep_channels, keep_channels+cur])
@@ -93,7 +115,7 @@ def prune(model, tgt_nchannels):
             assert cur >= tgt, "Cannot prune to more channels than exist."
             next_conv = model.encoder[i][2]
             prev_conv = model.encoder[i][0]
-            keep_channels = importance_selection([prev_conv], [next_conv], tgt)
+            keep_channels = importance_selection([prev_conv], [next_conv], tgt, args)
 
             prev_conv.weight.set_(prev_conv.weight.detach()[keep_channels])
             prev_conv.bias.set_(prev_conv.bias.detach()[keep_channels])
@@ -106,7 +128,7 @@ def prune(model, tgt_nchannels):
             assert cur >= tgt, "Cannot prune to more channels than exist."
             next_conv = model.decoder[i][2]
             prev_conv = model.decoder[i][0]
-            keep_channels = importance_selection([prev_conv], [next_conv], tgt)
+            keep_channels = importance_selection([prev_conv], [next_conv], tgt, args)
 
             # first conv in decoder is glu layer too
             duplicated_channels = torch.cat([keep_channels, keep_channels+cur])
@@ -118,6 +140,53 @@ def prune(model, tgt_nchannels):
             next_conv.in_channels = tgt        
 
     # print("Pruning complete.")
+
+def sensitivity_scan(model, args):
+    eval_args = eval_parser.parse_args(['--data_dir', 'egs/valentini', '--device', 'cuda', '--convert'])
+    cur_nchannels = get_nchannels(model)
+    sensitivities = {}
+    for i in range(len(model.encoder)):
+        for p in tqdm(torch.arange(0.2, 0.9, 0.2)):
+            to_scan = []
+            if i != 0 and args.scan_skips:
+                to_scan.append(f'skip')
+            if args.scan_encoder:
+                to_scan.append(f'encoder')
+            if args.scan_decoder:
+                to_scan.append(f'decoder')
+
+            for scan in to_scan:
+                print(f'Scanning {scan} at {p}, layer {i}')
+                tgt_nchannels = copy.deepcopy(cur_nchannels)
+                newmodel = copy.deepcopy(model).cuda().eval()
+                if scan == 'skip':
+                    tgt_nchannels['encoder'][i][0] = int(p * cur_nchannels['encoder'][i][0])
+                if scan == 'encoder':
+                    tgt_nchannels['encoder'][i][1] = int(p * cur_nchannels['encoder'][i][1])
+                if scan == 'decoder':
+                    tgt_nchannels['decoder'][i] = int(p * cur_nchannels['decoder'][i])
+
+                prune(newmodel, tgt_nchannels, args)
+                pesq, stoi = evaluate(eval_args, model=newmodel)
+                sensitivities.setdefault(f'{scan}_{i}_pesq', []).append(pesq)
+                sensitivities.setdefault(f'{scan}_{i}_stoi', []).append(stoi)
+
+    print('SENSITIVITIES: ', sensitivities)
+    return sensitivities
+
+def plot_sensitivity(sensitivities, baseline, args):
+    fig, axs = plt.subplots(2, 3, figsize=(12,10))
+    for k, v in sensitivities.items():
+        row = axs[0] if 'pesq' in k else axs[1]
+        ax = row[0] if 'skip' in k else row[1] if 'encoder' in k else row[2]
+        ax.plot(torch.arange(20, 90, 20), list(reversed(v)), label=k)
+        if '_1_' in k:
+            ax.axhline(baseline[0 if 'pesq' in k else 1], linestyle='--', label='Baseline')
+            ax.set_xlabel('Pruning %')
+            ax.set_ylabel('PESQ' if 'pesq' in k else 'STOI')
+            ax.set_title('Skip' if 'skip' in k else 'Encoder' if 'encoder' in k else 'Decoder')
+        ax.legend()
+    plt.savefig(args.output)
 
 def main(model=None):
     args = parser.parse_args()
@@ -131,11 +200,20 @@ def main(model=None):
     if args.uniform:
         cur_nchannels = get_nchannels(model)
         tgt_nchannels = scale_down(cur_nchannels, args.p)
-        prune(model, tgt_nchannels)
-    model._init_args_kwargs[1]['prune_ratio'] = tgt_nchannels
+        prune(model, tgt_nchannels, args)
+        model._init_args_kwargs[1]['prune_ratio'] = tgt_nchannels
+        # Save model
+        torch.save(serialize_model(model), args.output)
+    
+    # Sensitivity scan
+    if args.sensitivity:
+        sensitivity_scan(model, args)
 
-    # Save model
-    torch.save(serialize_model(model), args.output)
+    if args.plot_sensitivity:
+        with open(args.sensitivity_path, 'r') as f:
+            sensitivities = json.load(f)
+        baseline = [2.514, 0.93]
+        plot_sensitivity(sensitivities, baseline, args)
 
 if __name__ == "__main__":
     main()

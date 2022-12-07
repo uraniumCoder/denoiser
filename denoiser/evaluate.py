@@ -104,7 +104,6 @@ def _estimate_and_run_metrics(clean, model, noisy, args):
     estimate = get_estimate(model, noisy, args)
     return _run_metrics(clean, estimate, args, sr=model.sample_rate)
 
-
 def _run_metrics(clean, estimate, args, sr):
     estimate = estimate.numpy()[:, 0]
     clean = clean.numpy()[:, 0]
@@ -114,7 +113,6 @@ def _run_metrics(clean, estimate, args, sr):
         pesq_i = 0
     stoi_i = get_stoi(clean, estimate, sr=sr)
     return pesq_i, stoi_i
-
 
 def _count_parameters(model):
     table = PrettyTable(["Modules", "Parameters"])
