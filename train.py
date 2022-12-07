@@ -14,7 +14,7 @@ import hydra
 from denoiser.executor import start_ddp_workers
 import kmeans_quantize
 
-from denoiser.utils import serialize_model, deserialize_model
+from denoiser.utils import serialize_model
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +79,6 @@ def run(args):
         os._exit(1)
 
     if args.kmeans_finetune:
-        if args.model_path:
-            model = deserialize_model(torch.load(args.model_path)) 
         quantizer = kmeans_quantize.KMeansQuantizer(model, args.bitwidth)
         quantizer.apply(model, False)
         solver = Solver(data, model, optimizer, args, callbacks = [lambda: quantizer.apply(model, True)])
