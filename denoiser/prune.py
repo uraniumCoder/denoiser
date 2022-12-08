@@ -16,12 +16,11 @@ parser = argparse.ArgumentParser(
 )
 add_model_flags(parser)
 
-parser.add_argument('--normalize_importance', action='store_true', help='normalize importance scores before summing')
-
 # uniform pruning
 parser.add_argument('--uniform', action='store_true', help='uniform pruning')
 parser.add_argument('--p', type=float, help='pruning factor')
 parser.add_argument('--output', type=str, help='output path')
+parser.add_argument('--normalize_importance', action='store_true', help='normalize importance scores before summing')
 
 # manual select pruning ratios
 parser.add_argument('--target', type=str, help='json object of target number of channels')
@@ -35,6 +34,11 @@ parser.add_argument('--scan_decoder', action='store_true', help='scan the decode
 # plot sensitivity scan results
 parser.add_argument('--plot_sensitivity', action='store_true', help='plot the sensitivity scan results')
 parser.add_argument('--sensitivity_path', type=str, help='path to the sensitivity scan results')
+
+# plot tradeoff results
+parser.add_argument('--plot_tradeoff', action='store_true', help='plot the tradeoff curves')
+parser.add_argument('--tradeoff_path', type=str, default='results/agg_pruning.txt', help='tradeoff data')
+parser.add_argument('--include_designed', action='store_true', help='plot designed models')
 
 def get_nchannels(model):
     """
@@ -182,15 +186,36 @@ def plot_sensitivity(sensitivities, baseline, args):
     fig, axs = plt.subplots(2, 3, figsize=(12,10))
     for k, v in sensitivities.items():
         row = axs[0] if 'pesq' in k else axs[1]
-        ax = row[0] if 'skip' in k else row[1] if 'encoder' in k else row[2]
+        ax = row[0] if 'skip' in k else row[1] if 'encoder' in k else row[2] if 'decoder' in k else row[1] if 'method 2' in k else row[0]
         ax.plot(torch.arange(20, 90, 20), list(reversed(v)), label=k)
         if '_1_' in k:
             ax.axhline(baseline[0 if 'pesq' in k else 1], linestyle='--', label='Baseline')
             ax.set_xlabel('Pruning %')
             ax.set_ylabel('PESQ' if 'pesq' in k else 'STOI')
-            ax.set_title('Skip' if 'skip' in k else 'Encoder' if 'encoder' in k else 'Decoder')
+            ax.set_title('Method 1' if 'method 1' in k else 'Method 2' if 'method 2' in k else 'Skip' if 'skip' in k else 'Encoder' if 'encoder' in k else 'Decoder')
         ax.legend()
     plt.savefig(args.output)
+
+def plot_tradeoff(tradeoff, args):
+    fig, axs = plt.subplots(1,2, figsize=(10,5))
+    for k, v in tradeoff.items():
+        if k=='designed+finetune' and not args.include_designed:
+            continue
+        pesqs = [d['pesq'] for d in v]
+        stois = [d['stoi'] for d in v]
+        sizes = [d['nparams']/(2**18) for d in v]
+
+        axs[0].plot(sizes, pesqs, marker='x', label=k)
+        axs[1].plot(sizes, stois, marker='x', label=k)
+    axs[0].set_xlabel('Sizes (Mb)')
+    axs[1].set_xlabel('Sizes (Mb)')
+    axs[0].set_ylabel('PESQ')
+    axs[1].set_ylabel('STOI')
+    axs[0].legend()
+    axs[1].legend()
+    fig.suptitle('Tradeoff accuracy vs size')
+    plt.savefig(args.output)
+        
 
 def main(model=None):
     args = parser.parse_args()
@@ -224,6 +249,12 @@ def main(model=None):
             sensitivities = json.load(f)
         baseline = [2.514, 0.93]
         plot_sensitivity(sensitivities, baseline, args)
+
+    if args.plot_tradeoff:
+        with open(args.tradeoff_path, 'r') as f:
+            tradeoff = json.load(f)
+        plot_tradeoff(tradeoff, args)
+
 
 if __name__ == "__main__":
     main()
