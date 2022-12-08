@@ -8,7 +8,7 @@
 
 import logging
 import os
-import denoiser.pretrained
+
 import hydra
 
 from denoiser.executor import start_ddp_workers
@@ -79,7 +79,6 @@ def run(args):
         os._exit(1)
 
     if args.kmeans_finetune:
-        model = pretrained.dns48()
         quantizer = kmeans_quantize.KMeansQuantizer(model, args.bitwidth)
         quantizer.apply(model, False)
         solver = Solver(data, model, optimizer, args, callbacks = [lambda: quantizer.apply(model, True)])
