@@ -61,7 +61,7 @@ def predict(interpreter, noisy):
         rest = predict_segment(interpreter, rest)[..., :noisy.shape[1]% args.compute_length]
         output =  np.hstack([output, rest])
     else:
-        rest = np.hstack([noisy , np.zeros_like((1, args.compute_length - noisy.shape[1] % args.compute_length))])
+        rest = np.hstack([noisy[...,...] , np.zeros_like((1, args.compute_length - noisy.shape[1] % args.compute_length))])
         rest = predict_segment(interpreter, rest)[..., : noisy.shape[1] % args.compute_length]
         output =  rest
 
