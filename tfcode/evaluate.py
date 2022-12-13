@@ -54,14 +54,14 @@ def get_interpreter(args):
 
 def predict(interpreter, noisy):
     noisy =torch.tensor(noisy.reshape((1, -1)), dtype=torch.float32 )
-    print("input:", noisy.shape)
+    print("input:", noisy.dtype)
     if noisy.shape[1] >= args.compute_length:
         output = np.hstack([predict_segment(interpreter, noisy[..., i* args.compute_length: (i+ 1) * args.compute_length]) for i in range(noisy.shape[1] // args.compute_length)]) 
-        rest = np.hstack([noisy[..., - noisy.shape[1] % args.compute_length: ] , np.zeros((1, args.compute_length - noisy.shape[1] % args.compute_length))])
+        rest = np.hstack([noisy[..., - noisy.shape[1] % args.compute_length: ] , np.zeros((1, args.compute_length - noisy.shape[1] % args.compute_length), dtype=torch.float32 )])
         rest = predict_segment(interpreter, rest)[..., :noisy.shape[1]% args.compute_length]
         output =  np.hstack([output, rest])
     else:
-        rest = np.hstack([noisy[...,...] , np.zeros((1, args.compute_length - noisy.shape[1] % args.compute_length))])
+        rest = np.hstack([noisy[...,...] , np.zeros((1, args.compute_length - noisy.shape[1] % args.compute_length), dtype=torch.float32 )])
         rest = predict_segment(interpreter, rest)[..., : noisy.shape[1] % args.compute_length]
         output =  rest
 
