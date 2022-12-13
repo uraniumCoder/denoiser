@@ -75,8 +75,9 @@ def predict_segment(interpreter, noisy):
     # noisy, length = pad(noisy, PAD_MIN, PAD_STRIDE)
 
     # Get input and output tensors.
+    noisy = noisy.reshape(1, 1, -1)
     print("segment input", noisy.shape)
-    noisy.reshape(1, 1, -1)
+    
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
