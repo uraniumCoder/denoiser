@@ -54,7 +54,7 @@ def get_interpreter(args):
 
 def predict(interpreter, noisy):
     print("input:", noisy.shape)
-    output = np.hstack([predict_segment(interpreter, noisy[..., i* args.compute_length: (i+ 1) args.compute_length]) for i in range(noisy.shape[1] // args.compute_length)])
+    output = np.hstack([predict_segment(interpreter, noisy[..., i* args.compute_length: (i+ 1) * args.compute_length]) for i in range(noisy.shape[1] // args.compute_length)])
     rest = np.hstack([noisy[..., - len(noisy) % args.compute_length: ] , np.zeros_like((1, args.compute_length))])
     rest = predict_segment(interpreter, rest)[..., :len(noisy) % args.compute_length]
     output =  np.hstack([output, rest])
