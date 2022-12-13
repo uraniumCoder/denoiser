@@ -21,7 +21,7 @@ parser.add_argument("--data_dir", type=str, required=True, help="directory inclu
 parser.add_argument("--matching", type=str, default="sort", help="set this to dns for the dns dataset.")
 parser.add_argument("--convert", action="store_true", help="Convert to 16kHz before evaluation")
 parser.add_argument("--sample_rate", type=int, default=16000, help="Sample rate")
-parser.add_argument("--compute_length", type=int, default=160000, help="Length of segment model can compute")
+parser.add_argument("--compute_length", type=int, default=160085, help="Length of segment model can compute")
 args = parser.parse_args()
 
 def evaluate(model, loader):
@@ -68,6 +68,7 @@ def predict_segment(interpreter, noisy):
     # noisy, length = pad(noisy, PAD_MIN, PAD_STRIDE)
 
     # Get input and output tensors.
+    print("segment input", noisy.shape)
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
