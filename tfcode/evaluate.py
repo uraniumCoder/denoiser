@@ -21,6 +21,7 @@ parser.add_argument("--data_dir", type=str, required=True, help="directory inclu
 parser.add_argument("--matching", type=str, default="sort", help="set this to dns for the dns dataset.")
 parser.add_argument("--convert", action="store_true", help="Convert to 16kHz before evaluation")
 parser.add_argument("--sample_rate", type=int, default=16000, help="Sample rate")
+parser.add_argument("--compute_length", type=int, default=160000, help="Length of segment model can compute")
 args = parser.parse_args()
 
 def evaluate(model, loader):
@@ -52,6 +53,12 @@ def get_interpreter(args):
     return interpreter
 
 def predict(interpreter, noisy):
+    output = np.concatenate([predict_segment(interpreter, noisy[ i* args.compute_length: (i+ 1) args.compute_length]) for i in range(noisy.shape[0] // args.compute_length)])
+    rest = np.concatenate([noisy[- len(noisy) % args.compute_length: ] , np.zeros_like((args.compute_length))])
+    rest = predict_segment(interpreter, rest)[:len(noisy) % args.compute_length]
+    return np.concatenate([output, rest])
+
+def predict_segment(interpreter, noisy):
     """
     Noisy: B x T
     """
