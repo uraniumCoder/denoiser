@@ -53,7 +53,8 @@ def get_interpreter(args):
     return interpreter
 
 def predict(interpreter, noisy):
-    noisy = noisy.reshape((1, -1)).astype('f')
+    noisy = noisy.reshape((1, -1))
+    print(type(noisy))
     print("input:", noisy.shape)
     if noisy.shape[1] >= args.compute_length:
         output = np.hstack([predict_segment(interpreter, noisy[..., i* args.compute_length: (i+ 1) * args.compute_length]) for i in range(noisy.shape[1] // args.compute_length)]) 
