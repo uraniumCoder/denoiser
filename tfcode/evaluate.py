@@ -53,7 +53,7 @@ def get_interpreter(args):
     return interpreter
 
 def predict(interpreter, noisy):
-    noisy = noisy.reshape((1, -1))
+    noisy = noisy.reshape((1, -1)).type(torch.float32)
     print(type(noisy))
     print("input:", noisy.shape)
     if noisy.shape[1] >= args.compute_length:
