@@ -54,10 +54,16 @@ def get_interpreter(args):
 
 def predict(interpreter, noisy):
     print("input:", noisy.shape)
-    output = np.hstack([predict_segment(interpreter, noisy[..., i* args.compute_length: (i+ 1) * args.compute_length]) for i in range(noisy.shape[1] // args.compute_length)]) if noisy.shape[1] >= args.compute_length else np.array([])
-    rest = np.hstack([noisy[..., - len(noisy) % args.compute_length: ] , np.zeros_like((1, args.compute_length))])
-    rest = predict_segment(interpreter, rest)[..., :len(noisy) % args.compute_length]
-    output =  np.hstack([output, rest])
+    if noisy.shape[1] >= args.compute_length:
+        output = np.hstack([predict_segment(interpreter, noisy[..., i* args.compute_length: (i+ 1) * args.compute_length]) for i in range(noisy.shape[1] // args.compute_length)]) 
+        rest = np.hstack([noisy[..., - noisy.shape[1] % args.compute_length: ] , np.zeros_like((1, args.compute_length - noisy.shape[1] % args.compute_length))])
+        rest = predict_segment(interpreter, rest)[..., :noisy.shape[1]% args.compute_length]
+        output =  np.hstack([output, rest])
+    else:
+        rest = np.hstack([noisy , np.zeros_like((1, args.compute_length - noisy.shape[1] % args.compute_length))])
+        rest = predict_segment(interpreter, rest)[..., : noisy.shape[1] % args.compute_length]
+        output =  rest
+
     print("output:", output.shape)
     return output
 
