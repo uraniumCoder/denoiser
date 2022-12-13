@@ -54,7 +54,7 @@ def get_interpreter(args):
 
 def predict(interpreter, noisy):
     noisy =torch.tensor(noisy.reshape((1, -1)), dtype=torch.float32 )
-    print("input:", noisy.dtype)
+    #print("input:", noisy.dtype)
     if noisy.shape[1] >= args.compute_length:
         output = np.hstack([predict_segment(interpreter, noisy[..., i* args.compute_length: (i+ 1) * args.compute_length]) for i in range(noisy.shape[1] // args.compute_length)]) 
         rest = np.hstack([noisy[..., - noisy.shape[1] % args.compute_length: ] , np.zeros((1, args.compute_length - noisy.shape[1] % args.compute_length), dtype=numpy.single )])
@@ -65,7 +65,7 @@ def predict(interpreter, noisy):
         rest = predict_segment(interpreter, rest)[..., : noisy.shape[1] % args.compute_length]
         output =  rest
 
-    print("output:", output.shape)
+    #print("output:", output.shape)
     return output
 
 def predict_segment(interpreter, noisy):
@@ -76,7 +76,7 @@ def predict_segment(interpreter, noisy):
 
     # Get input and output tensors.
     noisy = noisy.reshape(1, 1, -1)
-    print("segment input", noisy.shape)
+    #print("segment input", noisy.shape)
     
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
